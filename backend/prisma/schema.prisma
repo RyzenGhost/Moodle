@@ -1,0 +1,64 @@
+// Conexión a la base de datos PostgreSQL
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Generador del cliente Prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Modelo de Usuario (User)
+model User {
+  id        String    @id @default(uuid()) // ID único para el usuario
+  fullName  String   // Nombre completo del usuario
+  email     String   @unique // Correo electrónico único
+  role      String   // Rol del usuario ('student', 'teacher', 'admin')
+  createdAt DateTime @default(now()) // Fecha de creación
+  enrollments Enrollment[] // Relación con las inscripciones del usuario
+  attendances Attendance[] // Relación con las asistencias del usuario
+}
+
+// Modelo de Curso (Course)
+model Course {
+  id          String    @id @default(uuid()) // ID único para el curso
+  name        String   // Nombre del curso
+  description String?  // Descripción opcional del curso
+  dayOfWeek   Int      // Día de la semana (6 = sábado)
+  startTime   DateTime // Hora de inicio
+  endTime     DateTime // Hora de fin
+  sessions    Session[] // Relación con las sesiones del curso
+  enrollments Enrollment[] @relation("CourseEnrollments") // Relación con las inscripciones del curso
+}
+
+// Modelo de Inscripción (Enrollment)
+model Enrollment {
+  userId   String // ID del usuario
+  courseId String // ID del curso
+  user     User   @relation(fields: [userId], references: [id]) // Relación con el usuario
+  course   Course @relation(fields: [courseId], references: [id], name: "CourseEnrollments") // Relación con el curso
+  @@id([userId, courseId]) // Llave primaria compuesta por userId y courseId
+}
+
+// Modelo de Sesión (Session)
+model Session {
+  id        String    @id @default(uuid()) // ID único para la sesión
+  courseId  String   // ID del curso
+  sessionDate DateTime // Fecha de la sesión
+  startAt   DateTime // Hora de inicio de la sesión
+  endAt     DateTime // Hora de fin de la sesión
+  attendance Attendance[] // Relación con las asistencias de la sesión
+  course    Course   @relation(fields: [courseId], references: [id]) // Relación con el curso
+}
+
+// Modelo de Asistencia (Attendance)
+model Attendance {
+  id         String   @id @default(uuid()) // ID único para la asistencia
+  sessionId  String  // ID de la sesión
+  userId     String  // ID del usuario
+  status     String  // Estado de la asistencia ('present', 'late', 'absent', 'excused')
+  checkinAt  DateTime // Fecha y hora de check-in
+  session    Session  @relation(fields: [sessionId], references: [id]) // Relación con la sesión
+  user       User     @relation(fields: [userId], references: [id]) // Relación con el usuario
+}
