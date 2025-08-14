@@ -6,9 +6,17 @@ function Courses() {
 
   useEffect(() => {
     // Aquí, puedes hacer una llamada a la API para obtener los cursos
-    fetch('/api/courses')
-      .then(response => response.json())
-      .then(data => setCourses(data));
+    // Por ahora, usamos datos de ejemplo
+    const fetchCourses = async () => {
+      const data = [
+        { id: 1, name: 'Introducción a la Programación', description: 'Curso para principiantes en lenguajes como Python y JavaScript.' },
+        { id: 2, name: 'Bases de Datos', description: 'Aprende a diseñar y gestionar bases de datos relacionales y no relacionales.' },
+        { id: 3, name: 'Desarrollo Web Avanzado', description: 'Profundiza en frameworks como React y Vue.js.' },
+      ];
+      setCourses(data);
+    };
+
+    fetchCourses();
   }, []);
 
   return (
@@ -16,7 +24,7 @@ function Courses() {
       <h1 className="my-4 text-center">Cursos Disponibles</h1>
       <Row>
         {courses.map(course => (
-          <Col md={4} key={course.id}>
+          <Col md={4} key={course.id} className="mb-4">
             <Card>
               <Card.Body>
                 <Card.Title>{course.name}</Card.Title>

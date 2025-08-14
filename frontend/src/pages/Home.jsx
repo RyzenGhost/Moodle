@@ -4,14 +4,14 @@ import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 function Home() {
   return (
     <Container>
-      <Row className="my-5">
+      <Row className="my-5 text-center">
         <Col>
-          <h1 className="text-center">Bienvenido a la Plataforma Moodle</h1>
-          <p className="text-center">Tu herramienta para gestionar cursos y asistencia de forma eficiente.</p>
+          <h1>Bienvenido a la Plataforma Moodle</h1>
+          <p>Tu herramienta para gestionar cursos y asistencia de forma eficiente.</p>
         </Col>
       </Row>
       <Row className="text-center">
-        <Col md={4}>
+        <Col md={4} className="mb-4">
           <Card>
             <Card.Body>
               <Card.Title>Cursos</Card.Title>
@@ -20,7 +20,7 @@ function Home() {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={4} className="mb-4">
           <Card>
             <Card.Body>
               <Card.Title>Asistencia</Card.Title>
@@ -29,7 +29,7 @@ function Home() {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={4} className="mb-4">
           <Card>
             <Card.Body>
               <Card.Title>Contactar</Card.Title>
@@ -44,4 +44,3 @@ function Home() {
 }
 
 export default Home;
-

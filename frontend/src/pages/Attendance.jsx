@@ -17,7 +17,7 @@ function Attendance() {
             <td>Juan Pérez</td>
             <td>
               <Button variant="success">Presente</Button>
-              <Button variant="danger" className="ml-2">Ausente</Button>
+              <Button variant="danger" className="ms-2">Ausente</Button>
             </td>
           </tr>
           {/* Más filas de estudiantes */}
@@ -28,4 +28,3 @@ function Attendance() {
 }
 
 export default Attendance;
-
