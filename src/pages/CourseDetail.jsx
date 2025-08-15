@@ -6,19 +6,17 @@ function CourseDetail() {
   const { id } = useParams();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        setLoading(true);
-        setError('');
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
         
-        // Replace with your actual backend URL
-        const response = await fetch(`http://localhost:5000/courses/${id}`);
+        const response = await fetch(`${backendUrl}/courses/${id}`);
 
         if (!response.ok) {
-          throw new Error('Failed to fetch course details');
+          throw new Error('Error al obtener los detalles del curso');
         }
 
         const data = await response.json();
@@ -37,9 +35,8 @@ function CourseDetail() {
     return (
       <Container className="text-center mt-5">
         <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">Cargando...</span>
         </Spinner>
-        <p>Loading course details...</p>
       </Container>
     );
   }
@@ -55,7 +52,7 @@ function CourseDetail() {
   if (!course) {
     return (
       <Container className="mt-5">
-        <Alert variant="warning">Course not found.</Alert>
+        <Alert variant="warning">Curso no encontrado.</Alert>
       </Container>
     );
   }
@@ -69,7 +66,7 @@ function CourseDetail() {
               <Card.Title className="h2">{course.name}</Card.Title>
               <Card.Text className="lead">{course.description}</Card.Text>
               <Button variant="secondary" onClick={() => window.history.back()}>
-                Back to Courses
+                Volver a Cursos
               </Button>
             </Card.Body>
           </Card>

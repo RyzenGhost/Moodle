@@ -1,39 +1,78 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 function Courses() {
   const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Aquí, puedes hacer una llamada a la API para obtener los cursos
-    // Por ahora, usamos datos de ejemplo
     const fetchCourses = async () => {
-      const data = [
-        { id: 1, name: 'Introducción a la Programación', description: 'Curso para principiantes en lenguajes como Python y JavaScript.' },
-        { id: 2, name: 'Bases de Datos', description: 'Aprende a diseñar y gestionar bases de datos relacionales y no relacionales.' },
-        { id: 3, name: 'Desarrollo Web Avanzado', description: 'Profundiza en frameworks como React y Vue.js.' },
-      ];
-      setCourses(data);
+      try {
+        // Asegúrate de que esta URL coincida con la URL de tu backend en Railway
+        // Usa una variable de entorno en producción
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+        
+        const response = await fetch(`${backendUrl}/courses`);
+        
+        if (!response.ok) {
+          throw new Error('Error al obtener los cursos');
+        }
+        
+        const data = await response.json();
+        setCourses(data);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchCourses();
   }, []);
 
+  if (loading) {
+    return (
+      <Container className="text-center mt-5">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </Spinner>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-5">
+        <Alert variant="danger">{error}</Alert>
+      </Container>
+    );
+  }
+
   return (
-    <Container>
-      <h1 className="my-4 text-center">Cursos Disponibles</h1>
-      <Row>
-        {courses.map(course => (
-          <Col md={4} key={course.id} className="mb-4">
-            <Card>
-              <Card.Body>
-                <Card.Title>{course.name}</Card.Title>
-                <Card.Text>{course.description}</Card.Text>
-                <Button variant="primary" href={`/courses/${course.id}`}>Ver Detalles</Button>
-              </Card.Body>
-            </Card>
+    <Container className="my-5">
+      <h2 className="text-center mb-4">Cursos Disponibles</h2>
+      <Row className="justify-content-center">
+        {courses.length > 0 ? (
+          courses.map(course => (
+            <Col md={4} key={course.id} className="mb-4">
+              <Card>
+                <Card.Body>
+                  <Card.Title>{course.name}</Card.Title>
+                  <Card.Text>{course.description}</Card.Text>
+                  <Link to={`/courses/${course.id}`}>
+                    <Button variant="primary">Ver Detalles</Button>
+                  </Link>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))
+        ) : (
+          <Col className="text-center">
+            <Alert variant="info">No hay cursos disponibles.</Alert>
           </Col>
-        ))}
+        )}
       </Row>
     </Container>
   );
