@@ -4,7 +4,7 @@ import Home from './pages/Home';
 import Attendance from './pages/Attendance';
 import Courses from './pages/Courses';
 
-
+// Este es un comentario para forzar un nuevo commit
 function App() {
   return (
     <Router>
