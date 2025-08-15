@@ -2,9 +2,8 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "attendance": "/(.*)",
-      "courses": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/index.html",
+      "attendance": "/index.html"  
     }
   ]
 }
