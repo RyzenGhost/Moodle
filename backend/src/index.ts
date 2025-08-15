@@ -18,7 +18,9 @@ const prisma = new PrismaClient({
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://moodle-loyat.vercel.app'
+}));
 app.use(express.json());
 
 // Rutas
