@@ -3,8 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import Attendance from './pages/Attendance';
 import Courses from './pages/Courses';
-import CourseDetail from './pages/CourseDetail'; // Importa un nuevo componente
-
+import CourseDetail from './pages/CourseDetail';
 function App() {
   return (
     <Router>
