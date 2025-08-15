@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import Attendance from './pages/Attendance';
 import Courses from './pages/Courses';
-import CourseDetail from './pages/coursedetail';
+import CourseDetail from './pages/CourseDetail'; // Import the new component
+
 function App() {
   return (
     <Router>
@@ -11,7 +12,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/courses" element={<Courses />} />
-        {/* Esta es la nueva ruta dinámica */}
+        {/* New dynamic route for course details */}
         <Route path="/courses/:id" element={<CourseDetail />} /> 
       </Routes>
     </Router>
