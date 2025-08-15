@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "npx vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "tailwind:init": "tailwindcss init"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.85.0",
