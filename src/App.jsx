@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import Attendance from './pages/Attendance';
 import Courses from './pages/Courses';
-import CourseDetail from './pages/CourseDetail'; // Import the new component
+import CourseDetail from './pages/CourseDetail';
+import UserManagement from './pages/UserManagement'; // ¡Nueva importación!
 
 function App() {
   return (
@@ -12,8 +13,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/courses" element={<Courses />} />
-        {/* New dynamic route for course details */}
         <Route path="/courses/:id" element={<CourseDetail />} /> 
+        <Route path="/users" element={<UserManagement />} /> {/* ¡Nueva ruta! */}
       </Routes>
     </Router>
   );
