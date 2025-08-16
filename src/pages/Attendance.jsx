@@ -15,7 +15,9 @@ function Attendance() {
     setError('');
 
     try {
-      const response = await fetch('/api/attendance', {
+      const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/+$/, '');
+      
+      const response = await fetch(`${backendUrl}/attendance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
