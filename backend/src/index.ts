@@ -11,9 +11,7 @@ const prisma = new PrismaClient();
 // Middleware
 // Configura CORS para permitir peticiones solo desde tu frontend de Vercel
 // Asegúrate de que process.env.FRONTEND_URL esté configurado en Vercel
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173'
-}));
+app.use(cors());
 app.use(express.json()); // Permite al servidor leer JSON en las peticiones
 
 // ------------------------------------
