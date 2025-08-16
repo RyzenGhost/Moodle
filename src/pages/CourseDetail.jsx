@@ -11,9 +11,7 @@ function CourseDetail() {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/+$/, '');
-        
-        const response = await fetch(`${backendUrl}/courses/${id}`);
+        const response = await fetch('/api/CourseDetail');
 
         if (!response.ok) {
           throw new Error('Error al obtener los detalles del curso');
