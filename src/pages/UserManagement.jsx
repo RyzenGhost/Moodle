@@ -11,7 +11,7 @@ function UserManagement() {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+  const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
   const fetchUsers = async () => {
     try {
