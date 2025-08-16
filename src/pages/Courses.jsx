@@ -10,8 +10,6 @@ function Courses() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        // Asegúrate de que esta URL coincida con la URL de tu backend en Railway
-        // Usa una variable de entorno en producción
         const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
         
         const response = await fetch(`${backendUrl}/courses`);
