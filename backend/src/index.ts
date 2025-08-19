@@ -1,7 +1,7 @@
 // backend/src/index.ts
 import express, { Request, Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -9,7 +9,6 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
-import crypto from "crypto";
 import nodemailer from "nodemailer";
 
 dotenv.config();
@@ -17,15 +16,50 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-// -------------------------- Middlewares base --------------------------
+// -------------------------- Seguridad / middlewares base --------------------------
 app.set("trust proxy", 1);
-app.use(helmet());
+
+// Helmet (relajamos CORP para permitir descargas CSV desde otros orígenes)
 app.use(
-  cors({
-    origin: process.env.FRONTEND_URL?.split(",") || ["http://localhost:5173"],
-    credentials: true,
+  helmet({
+    crossOriginResourcePolicy: false,
   })
 );
+
+// --- CORS robusto ---
+const allowedFromEnv = (process.env.FRONTEND_URL || "http://localhost:5173")
+  .split(",")
+  .map((s) => s.trim().replace(/\/+$/, "")) // normaliza y quita slash final
+  .filter(Boolean);
+
+const allowVercelPreviews =
+  (process.env.ALLOW_VERCEL_PREVIEWS || "false").toLowerCase() === "true";
+
+/** true si el origin está permitido */
+function isOriginAllowed(origin?: string): boolean {
+  if (!origin) return true; // Postman/curl/SSR
+  const o = origin.replace(/\/+$/, "");
+  if (allowedFromEnv.includes(o)) return true;
+  if (allowVercelPreviews && /\.vercel\.app$/.test(o)) return true;
+  return false;
+}
+
+const corsOptions: CorsOptions = {
+  origin(origin, cb) {
+    if (isOriginAllowed(origin)) return cb(null, true);
+    console.warn("[CORS] Origin NO permitido:", origin, "Permitidos:", allowedFromEnv);
+    return cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Authorization", "Content-Type"],
+  exposedHeaders: ["Content-Disposition"], // útil para CSV
+  optionsSuccessStatus: 200, // 200 evita problemas con algunos proxies
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // responde todos los preflights
+
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }));
@@ -47,7 +81,6 @@ type JWTPayload = { id: string; email: string; role: Role };
 function signToken(payload: JWTPayload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "8h" });
 }
-
 function signQrToken(sessionId: string) {
   return jwt.sign({ sessionId }, QR_SECRET, { expiresIn: "5m" });
 }
@@ -68,9 +101,9 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 function requireRole(...roles: Role[]) {
-  return (_req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     // @ts-ignore
-    const user = _req.user as JWTPayload | undefined;
+    const user = req.user as JWTPayload | undefined;
     if (!user) return res.status(401).json({ error: "No autenticado" });
     if (!roles.includes(user.role)) return res.status(403).json({ error: "No autorizado" });
     next();
@@ -79,7 +112,7 @@ function requireRole(...roles: Role[]) {
 
 // -------------------------- Nodemailer --------------------------
 const MAIL_FROM = process.env.FROM_EMAIL || "Soporte <no-reply@localhost>";
-const APP_URL = process.env.APP_URL || "http://localhost:5173";
+const APP_URL = (process.env.APP_URL || allowedFromEnv[0] || "http://localhost:5173").replace(/\/+$/, "");
 
 async function createTransport() {
   if (process.env.SMTP_HOST) {
@@ -108,7 +141,7 @@ function validate<S extends z.ZodTypeAny>(schema: S) {
       const details = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
       return res.status(400).json({ error: "Datos inválidos", details });
     }
-    (req as any).validated = result.data; // NO reasignamos params/query en Express 5
+    (req as any).validated = result.data;
     if ((result.data as any).body !== undefined) req.body = (result.data as any).body;
     next();
   };
@@ -150,7 +183,7 @@ const CourseUpdateSchema = z.object({
 });
 const IdParamSchema = z.object({ params: z.object({ id: z.string().uuid() }) });
 
-// Sesiones: aceptamos Date ya procesadas desde el front (ISO con Z) y Zod las coacciona a Date
+// Sesiones: el front envía ISO "Z" ya normalizado
 const SessionSchema = z.object({
   body: z.object({
     courseId: z.string().uuid(),
@@ -441,14 +474,13 @@ app.get("/sessions/:id/qr", requireAuth, requireRole("TEACHER", "ADMIN"), valida
     if (!session) return res.status(404).json({ error: "Sesión no encontrada" });
 
     const token = signQrToken(id);
-    const url = `${APP_URL.replace(/\/+$/, "")}/qr-checkin?t=${encodeURIComponent(token)}`;
+    const url = `${APP_URL}/qr-checkin?t=${encodeURIComponent(token)}`;
     res.json({ token, url });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// (opcional) POST para regenerar token explícitamente
 app.post("/sessions/:id/qr", requireAuth, requireRole("TEACHER", "ADMIN"), validate(IdParamSchema), async (req, res) => {
   try {
     const { id } = (req as any).validated.params;
@@ -456,7 +488,7 @@ app.post("/sessions/:id/qr", requireAuth, requireRole("TEACHER", "ADMIN"), valid
     if (!session) return res.status(404).json({ error: "Sesión no encontrada" });
 
     const token = signQrToken(id);
-    const url = `${APP_URL.replace(/\/+$/, "")}/qr-checkin?t=${encodeURIComponent(token)}`;
+    const url = `${APP_URL}/qr-checkin?t=${encodeURIComponent(token)}`;
     res.json({ token, url });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -674,6 +706,17 @@ app.get("/reports/summary", requireAuth, requireRole("TEACHER", "ADMIN"), valida
 // -------------------------- Utilidades --------------------------
 app.get("/__health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
+// Endpoint de ayuda para depurar CORS desde el navegador
+app.get("/__cors-test", (req, res) => {
+  res.json({
+    ok: true,
+    originHeader: req.headers.origin || null,
+    allowedFromEnv,
+    allowVercelPreviews,
+    time: new Date().toISOString(),
+  });
+});
+
 app.get("/__routes", (_req, res) => {
   const routes: any[] = [];
   const stack: any[] = (app as any)._router?.stack || [];
@@ -706,6 +749,7 @@ process.on("SIGTERM", async () => {
   await prisma.$disconnect();
   process.exit(0);
 });
+
 
 
 
