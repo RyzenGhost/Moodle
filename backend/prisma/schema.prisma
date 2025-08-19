@@ -11,13 +11,15 @@ generator client {
 
 // Modelo de Usuario (User)
 model User {
-  id        String    @id @default(uuid()) // ID único para el usuario
-  fullName  String   // Nombre completo del usuario
-  email     String   @unique // Correo electrónico único
-  role      String   // Rol del usuario ('student', 'teacher', 'admin')
-  createdAt DateTime @default(now()) // Fecha de creación
-  enrollments Enrollment[] // Relación con las inscripciones del usuario
-  attendances Attendance[] // Relación con las asistencias del usuario
+  id          String        @id @default(uuid())
+  fullName    String
+  email       String        @unique
+  role        String
+  createdAt   DateTime      @default(now())
+  passwordHash String?      // <-- NUEVO (hash de contraseña)
+  enrollments Enrollment[]
+  attendances Attendance[]
+  passwordResets PasswordReset[]
 }
 
 // Modelo de Curso (Course)
@@ -54,11 +56,27 @@ model Session {
 
 // Modelo de Asistencia (Attendance)
 model Attendance {
-  id         String   @id @default(uuid()) // ID único para la asistencia
-  sessionId  String  // ID de la sesión
-  userId     String  // ID del usuario
-  status     String  // Estado de la asistencia ('present', 'late', 'absent', 'excused')
-  checkinAt  DateTime // Fecha y hora de check-in
-  session    Session  @relation(fields: [sessionId], references: [id]) // Relación con la sesión
-  user       User     @relation(fields: [userId], references: [id]) // Relación con el usuario
+  id        String   @id @default(uuid())
+  sessionId String
+  userId    String
+  status    String
+  checkinAt DateTime
+  session   Session  @relation(fields: [sessionId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([sessionId, userId]) // <-- evita doble marca a nivel BD
 }
+
+model PasswordReset {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   // SHA-256 del token
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+

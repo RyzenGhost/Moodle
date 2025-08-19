@@ -1,24 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, Table, Alert, Spinner } from 'react-bootstrap';
+import React, { useState, useEffect } from "react";
+import { Container, Form, Button, Table, Alert, Spinner } from "react-bootstrap";
+import { api } from "../api/http";                 // <- cliente fetch con Bearer
+import { useAuth } from "../context/AuthContext";  // <- saber rol/estado
 
 function UserManagement() {
+  const { user } = useAuth();
+  const canManage = user && (user.role === "TEACHER" || user.role === "ADMIN");
+
   const [users, setUsers] = useState([]);
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('STUDENT'); // Rol por defecto
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("STUDENT");
   const [loading, setLoading] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [error, setError] = useState(null);
-  const [message, setMessage] = useState('');
-
-  const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/+$/, '');
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
-      const response = await fetch(`${backendUrl}/users`);
-      if (!response.ok) throw new Error('Error al obtener usuarios');
-      const data = await response.json();
+      setError("");
+      const data = await api("/users"); // GET protegido (TEACHER/ADMIN)
       setUsers(data);
     } catch (e) {
       setError(e.message);
@@ -28,34 +30,25 @@ function UserManagement() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (canManage) fetchUsers();
+  }, [canManage]);
 
   const handleUserSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-    setMessage(null);
+    setError("");
+    setMessage("");
 
     try {
-      const response = await fetch(`${backendUrl}/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fullName, email, role }),
+      await api("/users", {
+        method: "POST",
+        body: { fullName, email, role }, // POST protegido (TEACHER/ADMIN)
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al crear el usuario');
-      }
-
-      await fetchUsers(); // Actualiza la lista de usuarios
-      setMessage('Usuario creado con éxito!');
-      setFullName('');
-      setEmail('');
-      setRole('STUDENT');
+      await fetchUsers();
+      setMessage("¡Usuario creado con éxito!");
+      setFullName("");
+      setEmail("");
+      setRole("STUDENT");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -63,41 +56,64 @@ function UserManagement() {
     }
   };
 
+  if (!canManage) {
+    return (
+      <Container className="my-5">
+        <Alert variant="warning">
+          No tienes permisos para gestionar usuarios. Inicia sesión como <b>TEACHER</b> o <b>ADMIN</b>.
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container className="my-5">
       <h2 className="text-center mb-4">Gestión de Usuarios</h2>
-      
+
       <Form onSubmit={handleUserSubmit} className="mb-5">
         <h4>Crear Nuevo Usuario</h4>
         {message && <Alert variant="success">{message}</Alert>}
         {error && <Alert variant="danger">{error}</Alert>}
-        
+
         <Form.Group className="mb-3">
           <Form.Label>Nombre Completo</Form.Label>
-          <Form.Control type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          <Form.Control
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+          />
         </Form.Group>
-        
+
         <Form.Group className="mb-3">
           <Form.Label>Email</Form.Label>
-          <Form.Control type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Form.Control
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </Form.Group>
-        
+
         <Form.Group className="mb-3">
           <Form.Label>Rol</Form.Label>
           <Form.Select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="STUDENT">Estudiante</option>
             <option value="TEACHER">Profesor</option>
+            <option value="ADMIN">Admin</option>
           </Form.Select>
         </Form.Group>
-        
+
         <Button variant="success" type="submit" disabled={loading}>
-          {loading ? <Spinner animation="border" size="sm" /> : 'Crear Usuario'}
+          {loading ? <Spinner animation="border" size="sm" /> : "Crear Usuario"}
         </Button>
       </Form>
 
       <h4>Usuarios Registrados</h4>
       {loadingUsers ? (
-        <div className="text-center"><Spinner animation="border" /></div>
+        <div className="text-center">
+          <Spinner animation="border" />
+        </div>
       ) : (
         <Table striped bordered hover responsive>
           <thead>
@@ -109,16 +125,18 @@ function UserManagement() {
           </thead>
           <tbody>
             {users.length > 0 ? (
-              users.map(user => (
-                <tr key={user.id}>
-                  <td>{user.fullName}</td>
-                  <td>{user.email}</td>
-                  <td>{user.role}</td>
+              users.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.fullName}</td>
+                  <td>{u.email}</td>
+                  <td>{u.role}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="3" className="text-center">No hay usuarios registrados.</td>
+                <td colSpan="3" className="text-center">
+                  No hay usuarios registrados.
+                </td>
               </tr>
             )}
           </tbody>
