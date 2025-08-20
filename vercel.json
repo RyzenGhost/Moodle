@@ -1,9 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://moodle-production-605a.up.railway.app/$1"
-    }
+    { "source": "/api/(.*)", "destination": "https://moodle-production-605a.up.railway.app/$1" }
   ],
   "headers": [
     {
@@ -15,3 +12,4 @@
     }
   ]
 }
+

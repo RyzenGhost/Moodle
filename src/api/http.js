@@ -1,31 +1,51 @@
-// usa /api relativo -> pasa por el proxy de Vercel
-const API_BASE =
-  (import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, "") || "") || "/api";
+// src/api/http.js
 
-let AUTH_TOKEN = "";
-export function setAuthToken(t) { AUTH_TOKEN = t || ""; }
+// En desarrollo usamos la URL local (si está definida), en producción SIEMPRE /api
+const DEV_BASE =
+  (import.meta?.env?.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
-export async function api(path, { method = "GET", body, headers } = {}) {
-  const url = `${API_BASE}${path}`; // p.ej. /api/auth/login
-  const res = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {}),
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
+export const API_BASE = import.meta.env.DEV ? DEV_BASE : '/api';
+
+export async function api(path, opts = {}) {
+  const url = `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
+
+  const token = localStorage.getItem('auth.token') || '';
+  const headers = {
+    ...(opts.headers || {})
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  // Si mandas body (objeto), por defecto es JSON
+  let body = opts.body;
+  if (body !== undefined && !(body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+    body = typeof body === 'string' ? body : JSON.stringify(body);
+  }
+
+  const resp = await fetch(url, {
+    method: opts.method || 'GET',
+    headers,
+    body
   });
-  if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
-    try { const j = await res.json(); if (j?.error) msg = j.error; } catch {/**/}
+
+  // Intenta parsear JSON; si no es JSON, devuelve texto
+  const text = await resp.text();
+  let data;
+  try { data = text ? JSON.parse(text) : null; }
+  catch { data = text; }
+
+  if (!resp.ok) {
+    const msg = (data && (data.error || data.message)) || `HTTP ${resp.status}`;
     throw new Error(msg);
   }
-  return res.status === 204 ? null : res.json();
+  return data;
 }
 
-export { API_BASE };
-
+// helper opcional (solo para quien lo use)
+export function setAuthToken(token) {
+  if (token) localStorage.setItem('auth.token', token);
+  else localStorage.removeItem('auth.token');
+}
 
 
 
