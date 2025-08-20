@@ -10,12 +10,8 @@ import React, {
 import { api, setAuthToken } from "../api/http";
 
 /** @typedef {"STUDENT" | "TEACHER" | "ADMIN"} Role */
-/**
- * @typedef {{ id:string, fullName:string, email:string, role:Role }} User
- */
-/**
- * @typedef {{ user:User|null, token:string|null, loading:boolean }} AuthState
- */
+/** @typedef {{ id:string, fullName:string, email:string, role:Role }} User */
+/** @typedef {{ user:User|null, token:string|null, loading:boolean }} AuthState */
 
 const LS_KEY = "auth:v1";
 
@@ -66,44 +62,39 @@ export function AuthProvider({ children }) {
     setAuthToken(token || "");
   }, [token]);
 
-  /** @param {string} email @param {string} password */
   const login = async (email, password) => {
-    setLoading(true);
-    try {
-      const resp = await api("/auth/login", {
-        method: "POST",
-        body: { email, password },
-      });
-      setUser(resp.user || null);
-      setToken(resp.token || null);
-      saveToStorage(resp.user || null, resp.token || null);
-      return resp;
-    } catch (err) {
-      // Propagar para que Login.jsx pueda mostrar el error
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const resp = await api("/auth/login", {
+      method: "POST",
+      body: { email, password },
+    });
+    setUser(resp.user || null);
+    setToken(resp.token || null);
+    saveToStorage(resp.user || null, resp.token || null);
+    return resp;
+  } finally {
+    setLoading(false);
+  }
+};
 
-  /** @param {{fullName:string, email:string, password:string}} payload */
-  const register = async (payload) => {
-    setLoading(true);
-    try {
-      const resp = await api("/auth/register", {
-        method: "POST",
-        body: payload,
-      });
-      setUser(resp.user || null);
-      setToken(resp.token || null);
-      saveToStorage(resp.user || null, resp.token || null);
-      return resp;
-    } catch (/**/) {
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+
+const register = async (email, password) => {
+  setLoading(true);
+  try {
+    const resp = await api("/auth/login", {
+      method: "POST",
+      body: { email, password },
+    });
+    setUser(resp.user || null);
+    setToken(resp.token || null);
+    saveToStorage(resp.user || null, resp.token || null);
+    return resp;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const logout = () => {
     setUser(null);
@@ -133,6 +124,7 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
 
 
 
