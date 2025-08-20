@@ -19,7 +19,7 @@ const prisma = new PrismaClient();
 // -------------------------- Seguridad / middlewares base --------------------------
 app.set("trust proxy", 1);
 
-// Helmet (relajamos CORP para permitir descargas CSV desde otros orígenes)
+// Helmet (permitimos descargas CSV desde otros orígenes)
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
@@ -29,15 +29,14 @@ app.use(
 // --- CORS robusto ---
 const allowedFromEnv = (process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
-  .map((s) => s.trim().replace(/\/+$/, "")) // normaliza y quita slash final
+  .map((s) => s.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
 const allowVercelPreviews =
   (process.env.ALLOW_VERCEL_PREVIEWS || "false").toLowerCase() === "true";
 
-/** true si el origin está permitido */
 function isOriginAllowed(origin?: string): boolean {
-  if (!origin) return true; // Postman/curl/SSR
+  if (!origin) return true; // proxy/vercel, curl, server-to-server
   const o = origin.replace(/\/+$/, "");
   if (allowedFromEnv.includes(o)) return true;
   if (allowVercelPreviews && /\.vercel\.app$/.test(o)) return true;
@@ -53,12 +52,12 @@ const corsOptions: CorsOptions = {
   credentials: true,
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type"],
-  exposedHeaders: ["Content-Disposition"], // útil para CSV
-  optionsSuccessStatus: 200, // 200 evita problemas con algunos proxies
+  exposedHeaders: ["Content-Disposition"],
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // responde todos los preflights
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -359,7 +358,7 @@ app.get("/courses/:id", requireAuth, validate(IdParamSchema), async (req, res) =
       where: { id },
       include: { enrollments: { include: { user: true } }, sessions: true },
     });
-    if (!course) return res.status(404).json({ error: "Curso no encontrado" });
+  if (!course) return res.status(404).json({ error: "Curso no encontrado" });
     res.json(course);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -706,7 +705,7 @@ app.get("/reports/summary", requireAuth, requireRole("TEACHER", "ADMIN"), valida
 // -------------------------- Utilidades --------------------------
 app.get("/__health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
-// Endpoint de ayuda para depurar CORS desde el navegador
+// Endpoint de ayuda para depurar CORS
 app.get("/__cors-test", (req, res) => {
   res.json({
     ok: true,
@@ -749,6 +748,7 @@ process.on("SIGTERM", async () => {
   await prisma.$disconnect();
   process.exit(0);
 });
+
 
 
 

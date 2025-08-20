@@ -1,25 +1,34 @@
-// src/api/http.js
-export const API_BASE = (import.meta.env.VITE_BACKEND_URL || "http://localhost:5000").replace(/\/+$/, "");
+// usa /api relativo -> pasa por el proxy de Vercel
+const API_BASE =
+  (import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, "") || "") || "/api";
+
+let AUTH_TOKEN = "";
+export function setAuthToken(t) { AUTH_TOKEN = t || ""; }
 
 export async function api(path, { method = "GET", body, headers } = {}) {
-  const token = localStorage.getItem("token");
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`; // p.ej. /api/auth/login
+  const res = await fetch(url, {
     method,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(headers || {}),
+      ...(AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {}),
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-
-  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = data?.error || `HTTP ${res.status}`;
+    let msg = `HTTP ${res.status}`;
+    try { const j = await res.json(); if (j?.error) msg = j.error; } catch {/**/}
     throw new Error(msg);
   }
-  return data;
+  return res.status === 204 ? null : res.json();
 }
+
+export { API_BASE };
+
+
+
+
 
 
 

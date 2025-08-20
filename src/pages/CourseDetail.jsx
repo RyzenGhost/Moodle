@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import { api } from '../api/http';
 
 function CourseDetail() {
   const { id } = useParams();
@@ -11,18 +12,12 @@ function CourseDetail() {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/+$/, '');
-        
-        const response = await fetch(`${backendUrl}/courses/${id}`);
-
-        if (!response.ok) {
-          throw new Error('Error al obtener los detalles del curso');
-        }
-
-        const data = await response.json();
+        setLoading(true);
+        setError(null);
+        const data = await api(`/courses/${id}`);
         setCourse(data);
       } catch (e) {
-        setError(e.message);
+        setError(e.message || 'Error al obtener los detalles del curso');
       } finally {
         setLoading(false);
       }
