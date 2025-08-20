@@ -1,5 +1,4 @@
 /* eslint-disable react-refresh/only-export-components */
-// ^ Evita la advertencia de Fast Refresh por exportar también useAuth
 
 import React, {
   createContext,
@@ -10,32 +9,12 @@ import React, {
 } from "react";
 import { api, setAuthToken } from "../api/http";
 
+/** @typedef {"STUDENT" | "TEACHER" | "ADMIN"} Role */
 /**
- * @typedef {"STUDENT" | "TEACHER" | "ADMIN"} Role
+ * @typedef {{ id:string, fullName:string, email:string, role:Role }} User
  */
-
 /**
- * @typedef {Object} User
- * @property {string} id
- * @property {string} fullName
- * @property {string} email
- * @property {Role} role
- */
-
-/**
- * @typedef {Object} AuthState
- * @property {User|null} user
- * @property {string|null} token
- * @property {boolean} loading
- */
-
-/**
- * @typedef {AuthState & {
- *   login: (email: string, password: string) => Promise<void>,
- *   register: (payload: { fullName: string, email: string, password: string }) => Promise<void>,
- *   logout: () => void,
- *   refreshMe: () => Promise<void>
- * }} AuthContextType
+ * @typedef {{ user:User|null, token:string|null, loading:boolean }} AuthState
  */
 
 const LS_KEY = "auth:v1";
@@ -45,12 +24,10 @@ function loadFromStorage() {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return { user: null, token: null, loading: false };
-    /** @type {{ user: User|null, token: string|null }} */
-    // @ts-ignore - JSDoc para ayuda, pero seguimos en JS
     const parsed = JSON.parse(raw);
     return {
-      user: parsed?.user ?? null,
-      token: parsed?.token ?? null,
+      user: parsed && parsed.user ? parsed.user : null,
+      token: parsed && parsed.token ? parsed.token : null,
       loading: false,
     };
   } catch {
@@ -67,16 +44,15 @@ function saveToStorage(user, token) {
   }
 }
 
-/** @type {React.Context<AuthContextType>} */
-// @ts-ignore – definimos shape con JSDoc arriba
+// Shape por defecto para evitar undefined en el hook
 const AuthContext = createContext({
   user: null,
   token: null,
   loading: true,
-  async login() {},
-  async register() {},
-  logout() {},
-  async refreshMe() {},
+  login: async () => {},
+  register: async () => {},
+  logout: () => {},
+  refreshMe: async () => {},
 });
 
 export function AuthProvider({ children }) {
@@ -90,7 +66,7 @@ export function AuthProvider({ children }) {
     setAuthToken(token || "");
   }, [token]);
 
-  /** @type {AuthContextType["login"]} */
+  /** @param {string} email @param {string} password */
   const login = async (email, password) => {
     setLoading(true);
     try {
@@ -101,12 +77,16 @@ export function AuthProvider({ children }) {
       setUser(resp.user || null);
       setToken(resp.token || null);
       saveToStorage(resp.user || null, resp.token || null);
+      return resp;
+    } catch (err) {
+      // Propagar para que Login.jsx pueda mostrar el error
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  /** @type {AuthContextType["register"]} */
+  /** @param {{fullName:string, email:string, password:string}} payload */
   const register = async (payload) => {
     setLoading(true);
     try {
@@ -117,6 +97,9 @@ export function AuthProvider({ children }) {
       setUser(resp.user || null);
       setToken(resp.token || null);
       saveToStorage(resp.user || null, resp.token || null);
+      return resp;
+    } catch (/**/) {
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -126,10 +109,9 @@ export function AuthProvider({ children }) {
     setUser(null);
     setToken(null);
     saveToStorage(null, null);
-    setAuthToken(""); // limpia el Authorization global
+    setAuthToken("");
   };
 
-  /** @type {AuthContextType["refreshMe"]} */
   const refreshMe = async () => {
     if (!token) return;
     try {
@@ -150,7 +132,6 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/** Hook de conveniencia */
 export const useAuth = () => useContext(AuthContext);
 
 
