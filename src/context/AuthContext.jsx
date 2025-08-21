@@ -1,12 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api, setAuthToken } from "../api/http";
 
 /** @typedef {"STUDENT" | "TEACHER" | "ADMIN"} Role */
@@ -40,7 +33,6 @@ function saveToStorage(user, token) {
   }
 }
 
-// Shape por defecto para evitar undefined en el hook
 const AuthContext = createContext({
   user: null,
   token: null,
@@ -63,38 +55,41 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const login = async (email, password) => {
-  setLoading(true);
-  try {
-    const resp = await api("/auth/login", {
-      method: "POST",
-      body: { email, password },
-    });
-    setUser(resp.user || null);
-    setToken(resp.token || null);
-    saveToStorage(resp.user || null, resp.token || null);
-    return resp;
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    try {
+      const resp = await api("/auth/login", {
+        method: "POST",
+        body: { email, password },
+      });
+      setUser(resp.user || null);
+      setToken(resp.token || null);
+      saveToStorage(resp.user || null, resp.token || null);
+      return resp;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-
-const register = async (email, password) => {
-  setLoading(true);
-  try {
-    const resp = await api("/auth/login", {
-      method: "POST",
-      body: { email, password },
-    });
-    setUser(resp.user || null);
-    setToken(resp.token || null);
-    saveToStorage(resp.user || null, resp.token || null);
-    return resp;
-  } finally {
-    setLoading(false);
-  }
-};
-
+  /** Registro + auto-login.
+   * Si NO quieres auto-login, comenta setUser/setToken/saveToStorage y
+   * maneja la navegación en el componente a /login.
+   */
+  const register = async (fullName, email, password, role) => {
+    setLoading(true);
+    try {
+      const resp = await api("/auth/register", {
+        method: "POST",
+        body: { fullName, email, password, role }, // role opcional
+      });
+      // Auto-login:
+      setUser(resp.user || null);
+      setToken(resp.token || null);
+      saveToStorage(resp.user || null, resp.token || null);
+      return resp;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const logout = () => {
     setUser(null);
@@ -124,6 +119,7 @@ const register = async (email, password) => {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
 
 
 

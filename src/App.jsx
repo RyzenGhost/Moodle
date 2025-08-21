@@ -18,6 +18,7 @@ import Reports from "./pages/Reports";
 import QrScan from "./pages/QrScan";
 import QrCheckin from "./pages/QrCheckin";
 import AppShell from "./layouts/AppShell";
+import Register from "./pages/Register"; // 👈 IMPORTANTE
 
 function Home() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
           {/* públicas */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} /> {/* 👈 NUEVA RUTA */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -63,6 +65,7 @@ export default function App() {
     </Router>
   );
 }
+
 
 
 

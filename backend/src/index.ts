@@ -57,7 +57,8 @@ const corsOptions: CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
+
 
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -701,6 +702,54 @@ app.get("/reports/summary", requireAuth, requireRole("TEACHER", "ADMIN"), valida
     res.status(500).json({ error: err.message });
   }
 });
+
+// -------------------------- ENROLLMENTS --------------------------
+app.get("/enrollments", requireAuth, requireRole("TEACHER", "ADMIN"), async (_req, res) => {
+  try {
+    const list = await prisma.enrollment.findMany({
+      include: { user: true, course: true },
+      orderBy: [{ course: { name: "asc" } }, { user: { fullName: "asc" } }] as any,
+    });
+    res.json(list);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/enrollments", requireAuth, requireRole("TEACHER", "ADMIN"), validate(EnrollmentSchema), async (req, res) => {
+  try {
+    const { userId, courseId } = req.body;
+    const exists = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (exists) return res.status(409).json({ error: "El usuario ya está inscrito en este curso" });
+
+    const created = await prisma.enrollment.create({ data: { userId, courseId } });
+    // opcional: devolver con relaciones para que el front no tenga que refetch
+    const withRelations = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+      include: { user: true, course: true },
+    });
+    res.json(withRelations || created);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/enrollments", requireAuth, requireRole("TEACHER", "ADMIN"), validate(EnrollmentSchema), async (req, res) => {
+  try {
+    const { userId, courseId } = req.body;
+    await prisma.enrollment.delete({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    // Prisma: record not found
+    if (err?.code === "P2025") return res.status(404).json({ error: "La inscripción no existe" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // -------------------------- Utilidades --------------------------
 app.get("/__health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
